@@ -1,0 +1,67 @@
+import requests
+import pandas as pd
+import numpy as np
+from bs4 import BeautifulSoup
+from datetime import datetime
+import os
+import schedule
+import time
+from threading import Timer
+
+
+
+def scrape():
+    def update():
+        response = requests.get('https://coinmarketcap.com/exchanges/binance/')
+        soup = BeautifulSoup(response.content, 'html.parser')
+        elements = soup.find_all("a",{'class':"sc-16bfeb24-0 eafNlX cmc-link"}) # [0:49]
+        return elements
+    update()
+    elements = update()
+
+    coins_list = [element.text for element in elements] # Here are all the coins Pair name
+    all_coins = ['BTC/USDT', 'BTC/BUSD', 'BUSD/USDT', 'ETH/USDT', 'ETH/BUSD', 'XRP/USDT', 'ETH/BTC', 'XRP/BUSD', 'DOGE/USDT', 'SOL/USDT', 'LUNC/BUSD', 'BNB/USDT', 'BNB/BUSD', 'DENT/USDT', 'LTC/USDT', 'USDT/TRY', 'SOL/BUSD', 'DENT/BUSD', 'BTC/EUR', 'MATIC/USDT', 'DENT/TRY', 'LUNC/USDT', 'ADA/USDT', 'MIR/USDT', 'ETH/EUR', 'DOGE/BUSD', 'MIR/BUSD', 'ATOM/USDT', 'CHZ/USDT', 'LINK/USDT', 'TRX/USDT', 'SHIB/USDT', 'BUSD/TRY', 'DOT/USDT', 'APT/USDT', 'SAND/USDT', 'XRP/BTC', 'ETC/USDT', 'SNM/BUSD', 'APE/USDT', 'USDT/BIDR', 'HOT/USDT', 'BTC/TRY', 'ADA/BUSD', 'TWT/USDT', 'XMR/USDT', 'FTM/USDT', 'LTC/BUSD', 'BUSD/BIDR', 'MATIC/BUSD']
+
+    def create_df(pair: str):
+        coins = [pair]
+        data = [] 
+
+        def get_data(element):
+            parent_element = element.parent
+            grand_parent = parent_element.parent
+            ggrand_parent = grand_parent.parent
+            data = []
+            for gp in ggrand_parent:
+                data.append(gp.text)
+            return data
+            
+        new_pair = pair.replace('/', '_') 
+        file_path = f"./shit/{new_pair}.csv"
+
+        data = [get_data(elements[element]) for element in range(len(elements))]
+        new_data = [x for x in data if x[2] in coins]
+
+        if os.path.exists(file_path):
+            df = pd.DataFrame(new_data)
+            df = pd.DataFrame(df.values.reshape(1, 10), columns=["1",'Currency', 'Pair', 'Price', '+2% Depth', '-2% Depth', 'Volume', 'Volume %', 'Liquidity', "2"])
+            df['Current Time'] = pd.to_datetime(datetime.now())
+            df = df.drop(columns=['1'] + ["2"])
+            df.to_csv(f"./shit/{new_pair}.csv", mode='a', index=False, header=False)
+
+        else:
+            df = pd.DataFrame(new_data)
+            df = pd.DataFrame(df.values.reshape(1, 10), columns=["1",'Currency', 'Pair', 'Price', '+2% Depth', '-2% Depth', 'Volume', 'Volume %', 'Liquidity', "2"])
+            df['Current Time'] = pd.to_datetime(datetime.now())
+            df = df.drop(columns=['1'] + ["2"])
+            df.to_csv(f"./shit/{new_pair}.csv", mode='w', index=False, header=True)
+
+        return df
+
+    for item in coins_list:
+        create_df(item)
+    print(f"It's done master!")
+
+
+while True:
+    scrape()
+    time.sleep(5*60) # wait 5 minutes
