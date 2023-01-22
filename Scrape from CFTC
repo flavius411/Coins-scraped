@@ -1,0 +1,30 @@
+import requests
+import pandas as pd
+from bs4 import BeautifulSoup
+import html5lib
+from pyspark.sql import SparkSession
+
+
+url = 'https://www.cftc.gov/dea/futures/deacmesf.htm'
+response = requests.get(url)
+soup = BeautifulSoup(response.content, 'html.parser')
+text = soup.get_text()
+start_word = "BITCOIN"
+start_index = text.find(start_word)
+
+if start_index != -1:
+    blank_line_count = 0
+    encounter_count = 0
+    scraped_text = ""
+    lines = text[start_index:].splitlines()
+    for line in lines:
+        if line.strip() == "":
+            blank_line_count += 1
+        else:
+            blank_line_count = 0
+            scraped_text += line + '\n'
+        if blank_line_count == 2:
+            encounter_count += 1
+        if encounter_count == 2:
+            break
+    print(scraped_text)
