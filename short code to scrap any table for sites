@@ -1,0 +1,8 @@
+import pandas as pd
+import requests
+
+url = 'https://coinmarketcap.com/exchanges/binance/?type=spot'
+html = requests.get(url).content
+df = pd.read_html(html)[1]
+df = df.drop(df.columns[[0, 9]], axis=1)
+print(df)
